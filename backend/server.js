@@ -1,4 +1,3 @@
-// server.js
 require("dotenv").config();
 const express = require("express");
 const crypto = require("crypto");
@@ -14,6 +13,15 @@ const RAZORPAY_KEY = process.env.RAZORPAY_KEY;
 
 // Temporary storage for signed links (in-memory)
 const linkStore = new Map();
+
+// --- FRONTEND SERVE ---
+// Serve React build files from root dist/
+app.use(express.static(path.join(process.cwd(), "dist")));
+
+// For all root requests, send index.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "dist", "index.html"));
+});
 
 // --- ROUTE 1: Send Razorpay Key ---
 app.get("/api/razorpay-key", (req, res) => {
@@ -31,49 +39,26 @@ app.post("/create-download-link", (req, res) => {
   // Generate unique token
   const token = crypto.randomBytes(20).toString("hex");
 
-  // Store token → file mapping (expiring in 2 minutes)
+  // Store token → file mapping (expires in 2 minutes)
   linkStore.set(token, file);
   setTimeout(() => linkStore.delete(token), 2 * 60 * 1000);
 
   // Send link
   res.json({
-    link: `http://localhost:${process.env.PORT}/download/${token}`,
+    link: `${req.protocol}://${req.get("host")}/download/${token}`,
   });
 });
 
 // --- ROUTE 3: Download using secure link ---
 app.get("/download/:token", (req, res) => {
   const token = req.params.token;
-
   const fileName = linkStore.get(token);
 
   if (!fileName) {
     return res.status(401).send("Link expired or invalid ❌");
   }
 
-  const filePath = path.resolve("files", fileName);
-
-
-  res.download(filePath, () => {
-    linkStore.delete(token);
-  });
-});
-
-// Start server
-app.listen(process.env.PORT, () => {
-  console.log(`Backend running on port ${process.env.PORT}`);
-});
-
-
-app.get("/download/:token", (req, res) => {
-  const token = req.params.token;
-  const fileName = linkStore.get(token);
-
-  if (!fileName) {
-    return res.status(401).send("Link expired or invalid ❌");
-  }
-
-  const filePath = path.resolve("files", fileName);
+  const filePath = path.resolve("backend/files", fileName); // adjust path if needed
 
   console.log("Attempting to download:", filePath); // DEBUG
 
@@ -84,4 +69,10 @@ app.get("/download/:token", (req, res) => {
     }
     linkStore.delete(token);
   });
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Backend running on port ${PORT}`);
 });
