@@ -1,7 +1,5 @@
-// payments.js (updated for Render)
 const BACKEND_URL = "https://paid-notes.onrender.com";
 
-// Example function to request a secure download link
 function generateDownloadLink(fileName) {
   fetch(`${BACKEND_URL}/create-download-link`, {
     method: "POST",
@@ -11,8 +9,7 @@ function generateDownloadLink(fileName) {
     .then((res) => res.json())
     .then((data) => {
       if (data.link) {
-        // Open the secure PDF link in a new tab
-        window.location.href = data.link;
+        window.location.href = data.link; // updated
       } else {
         alert("❌ Failed to generate secure download link.");
       }
