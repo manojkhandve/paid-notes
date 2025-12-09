@@ -103,7 +103,7 @@ const PaidNotes = () => {
         const data = await res.json();
 
         if (data.link) {
-          window.open(data.link, "_blank");
+          window.location.href = data.link; // UPDATED
         }
 
         alert(`✅ Payment Successful! Download started for ${note.subject}`);
