@@ -1,3 +1,4 @@
+// server.js
 require("dotenv").config();
 const express = require("express");
 const crypto = require("crypto");
@@ -5,34 +6,25 @@ const cors = require("cors");
 const path = require("path");
 
 const app = express();
+
 app.use(express.json());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"]
+}));
 
-// Allow frontend + render
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://paid-notes-frontend.onrender.com",
-      "*",
-    ],
-    methods: "GET,POST",
-  })
-);
+// IMPORTANT: Your PDFs are in "files" folder
+const PDF_DIR = path.join(__dirname, "files");
 
-// ENV variables
-const RAZORPAY_KEY = process.env.RAZORPAY_KEY;
-const BASE_URL = process.env.BASE_URL; // MUST be added in .env
-const PORT = process.env.PORT || 8080;
-
-// Temporary token → file store
+// Store signed download links
 const linkStore = new Map();
 
-// --- ROUTE 1: Razorpay Key ---
+// Send Razorpay key to frontend
 app.get("/api/razorpay-key", (req, res) => {
-  res.json({ key: RAZORPAY_KEY });
+  res.json({ key: process.env.RAZORPAY_KEY });
 });
 
-// --- ROUTE 2: Create Download Link ---
+// Generate secure signed link
 app.post("/create-download-link", (req, res) => {
   const { file } = req.body;
 
@@ -41,36 +33,32 @@ app.post("/create-download-link", (req, res) => {
   }
 
   const token = crypto.randomBytes(20).toString("hex");
+  const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-  // store file for 2 minutes
-  linkStore.set(token, file);
-  setTimeout(() => linkStore.delete(token), 120000);
+  linkStore.set(token, { file, expiry });
 
-  res.json({
-    link: `${BASE_URL}/download/${token}`,
-  });
+  const downloadUrl = `https://paid-notes.onrender.com/download/${token}`;
+  res.json({ link: downloadUrl });
 });
 
-// --- ROUTE 3: Secure Download ---
+// Download file route
 app.get("/download/:token", (req, res) => {
   const token = req.params.token;
-  const fileName = linkStore.get(token);
+  const data = linkStore.get(token);
 
-  if (!fileName) {
-    return res.status(401).send("Link expired or invalid ❌");
+  if (!data) {
+    return res.status(404).send("Invalid link.");
   }
 
-  const filePath = path.resolve("files", fileName);
-  console.log("Downloading:", filePath);
-
-  res.download(filePath, (err) => {
-    if (err) {
-      console.error("Download error:", err);
-      return res.status(500).send("File not found ❌");
-    }
+  if (Date.now() > data.expiry) {
     linkStore.delete(token);
-  });
+    return res.status(403).send("Link expired.");
+  }
+
+  const filePath = path.join(PDF_DIR, data.file);
+  res.download(filePath, data.file);
 });
 
-// Start server
-app.listen(PORT, () => console.log(`Backend running on ${PORT}`));
+// Render-friendly port
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log("Server running on port " + PORT));
