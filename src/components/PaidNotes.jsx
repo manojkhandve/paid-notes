@@ -7,7 +7,6 @@ const paidNotes = [
   { id: 3, subject: "DAA + ML SAMPLE SOLVED PAPER", price: 90, backendFile: "DAA-ML-SOLVED-PAPER.pdf", initialDownloads: 17 },
 ];
 
-// Coupon code
 const VALID_COUPON = "ENOTES20";
 const COUPON_DISCOUNT = 20;
 
@@ -20,7 +19,6 @@ const PaidNotes = () => {
   const [appliedCoupon, setAppliedCoupon] = useState(false);
 
   useEffect(() => {
-    // Fetch Razorpay key
     const fetchRazorpayKey = async () => {
       try {
         const res = await fetch(`${BACKEND_URL}/api/razorpay-key`);
@@ -33,14 +31,15 @@ const PaidNotes = () => {
 
     fetchRazorpayKey();
 
-    // Load download counts
     const storedCounts = JSON.parse(localStorage.getItem("downloadCounts")) || {};
     const initializedCounts = { ...storedCounts };
+
     paidNotes.forEach((note) => {
       if (!(note.id in initializedCounts)) {
         initializedCounts[note.id] = note.initialDownloads;
       }
     });
+
     setDownloads(initializedCounts);
     localStorage.setItem("downloadCounts", JSON.stringify(initializedCounts));
   }, []);
@@ -62,7 +61,6 @@ const PaidNotes = () => {
     });
   };
 
-  // Apply coupon
   const handleApplyCoupon = () => {
     if (coupon.trim().toUpperCase() === VALID_COUPON) {
       setAppliedCoupon(true);
@@ -82,12 +80,11 @@ const PaidNotes = () => {
     const res = await loadRazorpayScript();
     if (!res) return alert("Failed to load Razorpay SDK.");
 
-    // Discounted price
     const finalAmount = appliedCoupon ? Math.max(note.price - COUPON_DISCOUNT, 1) : note.price;
 
     const options = {
       key: razorpayKey,
-      amount: finalAmount * 100, // paise
+      amount: finalAmount * 100,
       currency: "INR",
       name: "ENotes Premium",
       description: `Purchase ${note.subject}`,
@@ -96,17 +93,17 @@ const PaidNotes = () => {
       handler: async function () {
         updateDownloadCount(note.id);
 
-        // 🔐 Call backend to generate secure token link
         const res = await fetch(`${BACKEND_URL}/create-download-link`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          mode: "cors",
           body: JSON.stringify({ file: note.backendFile }),
         });
 
         const data = await res.json();
 
         if (data.link) {
-          window.open(data.link, "_blank"); // secure PDF download
+          window.open(data.link, "_blank");
         }
 
         alert(`✅ Payment Successful! Download started for ${note.subject}`);
@@ -126,7 +123,6 @@ const PaidNotes = () => {
     <div className="flex mt-17 flex-col items-center bg-gradient-to-br from-emerald-50 via-white to-blue-50 px-4 py-10">
       <h1 className="text-4xl font-extrabold text-gray-800 mb-6">Premium Notes 💎</h1>
 
-      {/* Coupon Input */}
       <div className="mb-6 flex gap-2">
         <input
           type="text"
