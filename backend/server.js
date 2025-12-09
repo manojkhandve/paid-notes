@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(cors({
   origin: "*",
-  methods: ["GET", "POST"]
+  methods: ["GET", "POST", "HEAD"]
 }));
 
 // IMPORTANT: Your PDFs are in "files" folder
@@ -61,4 +61,6 @@ app.get("/download/:token", (req, res) => {
 
 // Render-friendly port
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+app.listen(PORT, () =>
+  console.log("Server running on port " + PORT)
+);
