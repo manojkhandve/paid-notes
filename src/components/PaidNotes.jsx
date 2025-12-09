@@ -11,6 +11,8 @@ const paidNotes = [
 const VALID_COUPON = "ENOTES20";
 const COUPON_DISCOUNT = 20;
 
+const BACKEND_URL = "https://paid-notes.onrender.com";
+
 const PaidNotes = () => {
   const [downloads, setDownloads] = useState({});
   const [razorpayKey, setRazorpayKey] = useState("");
@@ -21,8 +23,7 @@ const PaidNotes = () => {
     // Fetch Razorpay key
     const fetchRazorpayKey = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/razorpay-key");
-
+        const res = await fetch(`${BACKEND_URL}/api/razorpay-key`);
         const data = await res.json();
         setRazorpayKey(data.key);
       } catch (err) {
@@ -81,7 +82,7 @@ const PaidNotes = () => {
     const res = await loadRazorpayScript();
     if (!res) return alert("Failed to load Razorpay SDK.");
 
-    // Disounted price
+    // Discounted price
     const finalAmount = appliedCoupon ? Math.max(note.price - COUPON_DISCOUNT, 1) : note.price;
 
     const options = {
@@ -96,7 +97,7 @@ const PaidNotes = () => {
         updateDownloadCount(note.id);
 
         // 🔐 Call backend to generate secure token link
-        const res = await fetch("http://localhost:8080/create-download-link", {
+        const res = await fetch(`${BACKEND_URL}/create-download-link`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ file: note.backendFile }),
@@ -123,7 +124,6 @@ const PaidNotes = () => {
 
   return (
     <div className="flex mt-17 flex-col items-center bg-gradient-to-br from-emerald-50 via-white to-blue-50 px-4 py-10">
-
       <h1 className="text-4xl font-extrabold text-gray-800 mb-6">Premium Notes 💎</h1>
 
       {/* Coupon Input */}
@@ -146,28 +146,22 @@ const PaidNotes = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl">
         {paidNotes.map((note) => (
           <div key={note.id} className="border border-gray-200 bg-white rounded-2xl p-6 shadow-md text-center">
-
             <h2 className="text-2xl font-semibold text-gray-800 mb-3">{note.subject}</h2>
-
             <p className="text-gray-500 mb-4 text-sm">
               Price: ₹{appliedCoupon ? Math.max(note.price - COUPON_DISCOUNT, 1) : note.price}
             </p>
-
             <button
               onClick={() => handleBuy(note)}
               className="bg-gradient-to-r from-emerald-600 to-teal-500 text-white px-6 py-3 rounded-xl shadow-md hover:scale-105 transition flex justify-center items-center gap-2 mx-auto"
             >
               <FaDownload className="text-lg" /> Get Notes Instantly
             </button>
-
             <p className="text-sm text-gray-600 mt-4 italic">
               👥 {downloads[note.id] || 0} students downloaded
             </p>
-
           </div>
         ))}
       </div>
-
     </div>
   );
 };
